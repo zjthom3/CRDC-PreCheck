@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from apps.api.app.db.base import Base
+import apps.api.app.db.models  # noqa: F401
 from apps.api.app.db.session import get_session
 from apps.api.app.main import create_app
 from apps.worker.worker import tasks as worker_tasks
