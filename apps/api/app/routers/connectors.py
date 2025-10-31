@@ -36,5 +36,6 @@ def trigger_powerschool_sync(
         entity_id=None,
         metadata={"provider": "powerschool", "task_id": task_id},
     )
+    session.commit()
 
     return SyncTriggerResponse(status="queued", task_id=task_id)

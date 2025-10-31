@@ -69,4 +69,5 @@ def export_exceptions(
         entity_id=None,
         metadata={"rows": len(results)},
     )
+    session.commit()
     return response

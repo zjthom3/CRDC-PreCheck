@@ -147,4 +147,3 @@ def test_rule_run_generates_results():
     assert readiness_resp.status_code == 200
     readiness = readiness_resp.json()
     assert "items" in readiness
-*** End Patch

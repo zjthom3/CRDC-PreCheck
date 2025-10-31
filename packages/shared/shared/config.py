@@ -1,7 +1,26 @@
+import os
 from functools import lru_cache
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel, Field
+
+try:  # pragma: no cover - optional dependency
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+except ModuleNotFoundError:  # Fallback stub for test environments
+    class SettingsConfigDict(dict):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+    class BaseSettings(BaseModel):
+        model_config = {"extra": "ignore"}
+
+        def __init__(self, **data):
+            env_values = {}
+            for field in self.model_fields:
+                env_key = field.upper()
+                if env_key in os.environ:
+                    env_values[field] = os.environ[env_key]
+            env_values.update(data)
+            super().__init__(**env_values)
 
 
 class AppSettings(BaseSettings):

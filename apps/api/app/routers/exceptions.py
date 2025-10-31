@@ -51,6 +51,7 @@ def list_exceptions(
             entity_id=None,
             metadata={"count": len(records)},
         )
+        session.commit()
     return records
 
 
@@ -93,6 +94,7 @@ def create_exception(
         entity_id=exception.id,
         metadata={"rule_result_id": str(rule_result.id)},
     )
+    session.commit()
     return exception
 
 
@@ -144,6 +146,7 @@ def update_exception(
         entity_id=exception.id,
         metadata=payload.model_dump(exclude_none=True),
     )
+    session.commit()
     return exception
 
 
@@ -180,6 +183,7 @@ def create_exception_memo(
         entity_id=memo.id,
         metadata={"exception_id": str(exception.id)},
     )
+    session.commit()
     return memo
 
 
