@@ -1,0 +1,91 @@
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    command: uvicorn apps.api.app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - ../../.env
+      - ../../.env.template
+    volumes:
+      - ../..:/workspace:cached
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile
+    command: celery -A apps.worker.worker.app worker --loglevel=info
+    env_file:
+      - ../../.env
+      - ../../.env.template
+    volumes:
+      - ../..:/workspace:cached
+    depends_on:
+      - postgres
+      - redis
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    command: >
+      sh -c "corepack enable &&
+             pnpm --dir apps/web install &&
+             pnpm --dir apps/web dev"
+    env_file:
+      - ../../.env
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_TOKEN: demo-admin-token
+    volumes:
+      - ../..:/workspace:cached
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-crdc_precheck}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:RELEASE.2024-01-31T20-20-33Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  grafana:
+    image: grafana/grafana-oss:10.4.2
+    ports:
+      - "3100:3000"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  minio_data:

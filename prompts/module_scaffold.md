@@ -1,0 +1,1 @@
+You are a senior Python engineer. Generate a FastAPI router for rule_results with CRUD, pagination, and tenant-aware SQLAlchemy queries. Include pytest coverage. Follow the style conventions in apps/api.

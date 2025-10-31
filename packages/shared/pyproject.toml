@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crdc-precheck-shared"
+version = "0.1.0"
+description = "Shared domain models and utilities for CRDC PreCheck services"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.6,<3.0",
+    "pydantic-settings>=2.0,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.3,<25.0",
+    "mypy>=1.9,<2.0",
+    "pytest>=8.1,<9.0",
+    "ruff>=0.3,<1.0"
+]
+
+[tool.setuptools]
+package-dir = {"" = "shared"}
+
+[tool.setuptools.packages.find]
+where = ["shared"]

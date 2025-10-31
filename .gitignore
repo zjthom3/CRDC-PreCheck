@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+.next/
+pnpm-lock.yaml
+.pnpm-store/
+
+# Editors
+.DS_Store
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Containers & Build
+dist/
+build/
+*.egg-info/
+coverage/
+
+# Env & Secrets
+.env
+.env.*
+!.env.template
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Misc
+tmp/

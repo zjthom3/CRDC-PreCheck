@@ -1,0 +1,26 @@
+[
+  {
+    "sis_id": "PS1001",
+    "first_name": "Jamie",
+    "last_name": "Lopez",
+    "grade_level": 9,
+    "school_name": "North High School",
+    "enrollment_status": "active"
+  },
+  {
+    "sis_id": "PS1002",
+    "first_name": "Riley",
+    "last_name": "Morgan",
+    "grade_level": 6,
+    "school_name": "Central Elementary",
+    "enrollment_status": "active"
+  },
+  {
+    "sis_id": "PS1003",
+    "first_name": "Skyler",
+    "last_name": "Patton",
+    "grade_level": 14,
+    "school_name": "North High School",
+    "enrollment_status": "active"
+  }
+]

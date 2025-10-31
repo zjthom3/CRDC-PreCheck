@@ -1,0 +1,8 @@
+[tool.black]
+line-length = 100
+include = '\\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["apps", "packages"]

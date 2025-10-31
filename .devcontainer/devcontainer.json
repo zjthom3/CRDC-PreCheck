@@ -1,0 +1,21 @@
+{
+  "name": "crdc-precheck",
+  "dockerComposeFile": [
+    "../infra/docker/compose.yml"
+  ],
+  "service": "api",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "postCreateCommand": "pip install -e packages/shared -e packages/rules -e apps/api[dev] && pnpm install --dir apps/web",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "API: FastAPI",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["apps.api.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
+      "envFile": "${workspaceFolder}/.env",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Web: Next.js",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm --dir apps/web dev"
+    },
+    {
+      "name": "Worker: Celery",
+      "type": "python",
+      "request": "launch",
+      "module": "celery",
+      "args": ["-A", "apps.worker.worker.app", "worker", "--loglevel=info"],
+      "envFile": "${workspaceFolder}/.env",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
