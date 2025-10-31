@@ -67,7 +67,7 @@ def export_exceptions(
         action="EXPORT_EXCEPTIONS",
         entity_type="ExceptionRecord",
         entity_id=None,
-        metadata={"rows": len(results)},
+        details={"rows": len(results)},
     )
     session.commit()
     return response

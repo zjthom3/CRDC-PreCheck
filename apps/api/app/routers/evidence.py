@@ -108,6 +108,6 @@ def create_packet(
         action="EVIDENCE_PACKET_CREATE",
         entity_type="EvidencePacket",
         entity_id=packet.id,
-        metadata={"exceptions": [str(exc.id) for exc in exceptions]},
+        details={"exceptions": [str(exc.id) for exc in exceptions]},
     )
     return packet

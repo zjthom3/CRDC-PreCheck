@@ -14,7 +14,7 @@ def write_audit_log(
     action: str,
     entity_type: str | None = None,
     entity_id: UUID | None = None,
-    metadata: dict[str, Any] | None = None,
+    details: dict[str, Any] | None = None,
 ) -> None:
     log_entry = AuditLog(
         district_id=district_id,
@@ -22,7 +22,7 @@ def write_audit_log(
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,
-        metadata=metadata,
+        details=details,
     )
     session.add(log_entry)
     session.flush()

@@ -34,7 +34,7 @@ def trigger_powerschool_sync(
         action="CONNECTOR_SYNC",
         entity_type="Connector",
         entity_id=None,
-        metadata={"provider": "powerschool", "task_id": task_id},
+        details={"provider": "powerschool", "task_id": task_id},
     )
     session.commit()
 

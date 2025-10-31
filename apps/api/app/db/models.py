@@ -438,7 +438,7 @@ class AuditLog(Base, TimestampMixin):
     action: Mapped[str] = mapped_column(String(128), nullable=False)
     entity_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
     entity_id: Mapped[UUID | None] = mapped_column(GUID(), nullable=True)
-    metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    details: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     district: Mapped["District"] = relationship()
     user: Mapped["UserAccount | None"] = relationship()

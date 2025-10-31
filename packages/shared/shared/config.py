@@ -15,7 +15,7 @@ except ModuleNotFoundError:  # Fallback stub for test environments
 
         def __init__(self, **data):
             env_values = {}
-            for field in self.model_fields:
+        for field in self.__class__.model_fields:
                 env_key = field.upper()
                 if env_key in os.environ:
                     env_values[field] = os.environ[env_key]
