@@ -75,6 +75,20 @@ class IngestStatusEnum(str, PyEnum):
     failed = "failed"
 
 
+class ExceptionStatusEnum(str, PyEnum):
+    open = "open"
+    in_review = "in_review"
+    resolved = "resolved"
+    wont_fix = "won't_fix"
+
+
+class EvidenceKindEnum(str, PyEnum):
+    csv = "csv"
+    screenshot = "screenshot"
+    policy = "policy"
+    export = "export"
+
+
 RuleRunStatus = Enum(RuleRunStatusEnum, name="rule_run_status", native_enum=False)
 RuleResultStatus = Enum(RuleResultStatusEnum, name="rule_result_status", native_enum=False)
 RuleSeverity = Enum(RuleSeverityEnum, name="rule_severity", native_enum=False)
@@ -83,6 +97,8 @@ ConnectorStatus = Enum(ConnectorStatusEnum, name="connector_status", native_enum
 AuthMethod = Enum(AuthMethodEnum, name="auth_method", native_enum=False)
 SyncStatus = Enum(SyncStatusEnum, name="sync_status", native_enum=False)
 IngestStatus = Enum(IngestStatusEnum, name="ingest_status", native_enum=False)
+ExceptionStatus = Enum(ExceptionStatusEnum, name="exception_status", native_enum=False)
+EvidenceKind = Enum(EvidenceKindEnum, name="evidence_kind", native_enum=False)
 
 
 class TimestampMixin:
@@ -309,3 +325,101 @@ class IngestBatch(Base, TimestampMixin):
     district: Mapped["District"] = relationship()
     source_system: Mapped["SourceSystem"] = relationship()
     sync_job: Mapped["SyncJob"] = relationship(back_populates="ingest_batches")
+
+
+class ExceptionRecord(Base, TimestampMixin):
+    __tablename__ = "exception_record"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4, nullable=False)
+    district_id: Mapped[UUID] = mapped_column(GUID(), ForeignKey("district.id", ondelete="CASCADE"), nullable=False)
+    rule_result_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("rule_result.id", ondelete="CASCADE"), nullable=False
+    )
+    owner_user_id: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("user_account.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[ExceptionStatusEnum] = mapped_column(
+        ExceptionStatus, nullable=False, default=ExceptionStatusEnum.open
+    )
+    rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
+    due_date: Mapped[Date | None] = mapped_column(Date, nullable=True)
+    approval_user_id: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("user_account.id", ondelete="SET NULL"), nullable=True
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    district: Mapped["District"] = relationship()
+    rule_result: Mapped["RuleResult"] = relationship()
+    owner: Mapped["UserAccount | None"] = relationship(foreign_keys=[owner_user_id])
+    approver: Mapped["UserAccount | None"] = relationship(foreign_keys=[approval_user_id])
+
+
+class EvidencePacket(Base, TimestampMixin):
+    __tablename__ = "evidence_packet"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4, nullable=False)
+    district_id: Mapped[UUID] = mapped_column(GUID(), ForeignKey("district.id", ondelete="CASCADE"), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    zip_url: Mapped[str | None] = mapped_column(String(512))
+    sha256: Mapped[str | None] = mapped_column(String(128))
+    created_by: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("user_account.id", ondelete="SET NULL"), nullable=True
+    )
+
+    district: Mapped["District"] = relationship()
+    creator: Mapped["UserAccount | None"] = relationship()
+    items: Mapped[list["EvidenceItem"]] = relationship(
+        back_populates="packet", cascade="all, delete-orphan"
+    )
+
+
+class EvidenceItem(Base, TimestampMixin):
+    __tablename__ = "evidence_item"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4, nullable=False)
+    district_id: Mapped[UUID] = mapped_column(GUID(), ForeignKey("district.id", ondelete="CASCADE"), nullable=False)
+    packet_id: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("evidence_packet.id", ondelete="SET NULL"), nullable=True
+    )
+    exception_id: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("exception_record.id", ondelete="SET NULL"), nullable=True
+    )
+    kind: Mapped[EvidenceKindEnum] = mapped_column(EvidenceKind, nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    uri: Mapped[str] = mapped_column(String(512), nullable=False)
+
+    district: Mapped["District"] = relationship()
+    packet: Mapped["EvidencePacket | None"] = relationship(back_populates="items")
+    exception: Mapped["ExceptionRecord | None"] = relationship()
+
+
+class ExceptionMemo(Base, TimestampMixin):
+    __tablename__ = "exception_memo"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4, nullable=False)
+    district_id: Mapped[UUID] = mapped_column(GUID(), ForeignKey("district.id", ondelete="CASCADE"), nullable=False)
+    exception_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("exception_record.id", ondelete="CASCADE"), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    body_md: Mapped[str] = mapped_column(Text, nullable=False)
+    generated_by: Mapped[str] = mapped_column(String(64), nullable=False, default="system")
+
+    district: Mapped["District"] = relationship()
+    exception: Mapped["ExceptionRecord"] = relationship()
+
+
+class ReadinessScore(Base, TimestampMixin):
+    __tablename__ = "readiness_score"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4, nullable=False)
+    district_id: Mapped[UUID] = mapped_column(GUID(), ForeignKey("district.id", ondelete="CASCADE"), nullable=False)
+    school_id: Mapped[UUID | None] = mapped_column(
+        GUID(), ForeignKey("school.id", ondelete="SET NULL"), nullable=True
+    )
+    category: Mapped[str] = mapped_column(String(64), nullable=False)
+    score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    district: Mapped["District"] = relationship()
+    school: Mapped["School | None"] = relationship()

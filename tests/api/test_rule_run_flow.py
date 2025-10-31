@@ -105,4 +105,46 @@ def test_rule_run_generates_results():
     results = results_resp.json()
     assert len(results) == 1
     assert results[0]["message"].startswith("Grade level")
+
+    exception_resp = client.post(
+        "/exceptions",
+        headers={"X-District-ID": str(district_id)},
+        json={"rule_result_id": results[0]["id"], "rationale": "Review needed"},
+    )
+    assert exception_resp.status_code == 201
+    exception_id = exception_resp.json()["id"]
+
+    update_resp = client.patch(
+        f"/exceptions/{exception_id}",
+        headers={"X-District-ID": str(district_id)},
+        json={"status": "in_review"},
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["status"] == "in_review"
+
+    memo_resp = client.post(
+        f"/exceptions/{exception_id}/memo",
+        headers={"X-District-ID": str(district_id)},
+        json={"title": "Initial review", "body_md": "Investigating."},
+    )
+    assert memo_resp.status_code == 201
+
+    packet_resp = client.post(
+        "/evidence/packets",
+        headers={"X-District-ID": str(district_id)},
+        json={
+            "name": "Exception packet",
+            "description": "Auto-generated evidence",
+            "exception_ids": [exception_id],
+        },
+    )
+    assert packet_resp.status_code == 201
+
+    readiness_resp = client.get(
+        "/readiness",
+        headers={"X-District-ID": str(district_id)},
+    )
+    assert readiness_resp.status_code == 200
+    readiness = readiness_resp.json()
+    assert "items" in readiness
 *** End Patch

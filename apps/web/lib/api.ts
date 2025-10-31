@@ -41,6 +41,33 @@ export type CsvImportResponse = {
   ingest_batch_id: string;
 };
 
+export type ExceptionRecord = {
+  id: string;
+  district_id: string;
+  rule_result_id: string;
+  owner_user_id: string | null;
+  status: string;
+  rationale: string | null;
+  due_date: string | null;
+  approval_user_id: string | null;
+  approved_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReadinessItem = {
+  school_id: string | null;
+  school_name: string | null;
+  category: string;
+  score: number;
+  open_errors: number;
+  open_warnings: number;
+};
+
+export type ReadinessResponse = {
+  items: ReadinessItem[];
+};
+
 type RequestHeaders = HeadersInit | undefined;
 
 function buildHeaders(extra?: RequestHeaders): HeadersInit {
@@ -142,4 +169,39 @@ export async function uploadStudentCsv(
   }
 
   return (await response.json()) as CsvImportResponse;
+}
+
+export async function fetchExceptions(districtId: string): Promise<ExceptionRecord[]> {
+  return request<ExceptionRecord[]>('/exceptions', {
+    headers: { 'X-District-ID': districtId },
+  });
+}
+
+export async function updateException(
+  districtId: string,
+  exceptionId: string,
+  data: Partial<{ status: string; owner_user_id: string; rationale: string; due_date: string; approved: boolean }>,
+): Promise<ExceptionRecord> {
+  return request<ExceptionRecord>(`/exceptions/${exceptionId}`, {
+    method: 'PATCH',
+    headers: { 'X-District-ID': districtId },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function createEvidencePacket(
+  districtId: string,
+  payload: { name: string; description?: string | null; exception_ids: string[] },
+): Promise<{ id: string }> {
+  return request<{ id: string }>('/evidence/packets', {
+    method: 'POST',
+    headers: { 'X-District-ID': districtId },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchReadiness(districtId: string): Promise<ReadinessResponse> {
+  return request<ReadinessResponse>('/readiness', {
+    headers: { 'X-District-ID': districtId },
+  });
 }

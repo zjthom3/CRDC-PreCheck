@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import connectors, districts, health, imports, rule_results, rule_runs, rule_versions, schools, students
+from .routers import connectors, districts, evidence, exceptions, health, imports, readiness, rule_results, rule_runs, rule_versions, schools, students
 
 
 def create_app() -> FastAPI:
@@ -21,7 +21,10 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(connectors.router)
     app.include_router(districts.router)
+    app.include_router(evidence.router)
+    app.include_router(exceptions.router)
     app.include_router(imports.router)
+    app.include_router(readiness.router)
     app.include_router(schools.router)
     app.include_router(students.router)
     app.include_router(rule_versions.router)

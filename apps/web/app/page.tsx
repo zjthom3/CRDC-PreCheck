@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   fetchDistricts,
+  fetchReadiness,
   fetchRuleResults,
   fetchRuleRuns,
   triggerPowerschoolSync,
@@ -36,6 +37,12 @@ export default function HomePage() {
   const { data: ruleResults, isLoading: resultsLoading } = useQuery({
     queryKey: ['ruleResults', activeDistrict?.id, latestRuleRun?.id],
     queryFn: () => fetchRuleResults(activeDistrict!.id, latestRuleRun?.id),
+    enabled: Boolean(activeDistrict?.id),
+  });
+
+  const { data: readinessData } = useQuery({
+    queryKey: ['readiness', activeDistrict?.id],
+    queryFn: () => fetchReadiness(activeDistrict!.id),
     enabled: Boolean(activeDistrict?.id),
   });
 
@@ -79,6 +86,10 @@ export default function HomePage() {
               >
                 {syncMutation.isLoading ? 'Syncing…' : 'Sync PowerSchool'}
               </button>
+              <span aria-hidden="true">•</span>
+              <Link href="/exceptions" className="underline decoration-dotted underline-offset-4">
+                View exceptions
+              </Link>
             </div>
           </div>
           <button
@@ -140,6 +151,38 @@ export default function HomePage() {
                 </tbody>
               </table>
             </div>
+          )}
+        </section>
+
+        <section className="rounded-lg border border-slate-800 bg-slate-900/70 p-6">
+          <h2 className="text-xl font-medium text-white">Readiness Heatmap</h2>
+          {readinessData && readinessData.items.length > 0 ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-800 text-left text-sm">
+                <thead>
+                  <tr className="text-slate-400">
+                    <th className="px-3 py-2">Scope</th>
+                    <th className="px-3 py-2">Category</th>
+                    <th className="px-3 py-2">Score</th>
+                    <th className="px-3 py-2">Open Errors</th>
+                    <th className="px-3 py-2">Open Warnings</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {readinessData.items.map((item) => (
+                    <tr key={`${item.category}-${item.school_id ?? 'district'}`}>
+                      <td className="px-3 py-2 text-slate-200">{item.school_name ?? 'District'}</td>
+                      <td className="px-3 py-2 text-slate-300">{item.category}</td>
+                      <td className="px-3 py-2 text-slate-200">{item.score}</td>
+                      <td className="px-3 py-2 text-slate-300">{item.open_errors}</td>
+                      <td className="px-3 py-2 text-slate-300">{item.open_warnings}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-4 text-slate-400">Run a validation to generate readiness metrics.</p>
           )}
         </section>
       </div>

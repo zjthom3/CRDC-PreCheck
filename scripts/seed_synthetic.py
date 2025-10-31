@@ -9,6 +9,12 @@ from apps.api.app.db.models import (
     Connector,
     ConnectorStatusEnum,
     District,
+    EvidenceItem,
+    EvidenceKindEnum,
+    EvidencePacket,
+    ExceptionRecord,
+    ExceptionStatusEnum,
+    ReadinessScore,
     RuleResult,
     RuleRun,
     RuleRunStatusEnum,
@@ -38,6 +44,8 @@ def main() -> None:
         ensure_demo_user(session, district)
         ensure_powerschool_connector(session, district)
         violations = ensure_rule_run(session, district)
+        create_sample_exceptions(session, district)
+        bootstrap_readiness_scores(session, district)
         print(
             f"Seed data ready for district {district.name}. "
             f"Most recent validation produced {violations} violation(s)."
@@ -245,6 +253,72 @@ def ensure_rule_run(session: SessionLocal, district: District) -> int:
         select(func.count(RuleResult.id)).where(RuleResult.rule_run_id == latest_run.id)
     ).scalar_one()
     return int(violation_count)
+
+
+def create_sample_exceptions(session: SessionLocal, district: District) -> None:
+    existing = session.execute(
+        select(ExceptionRecord).where(ExceptionRecord.district_id == district.id)
+    ).first()
+    if existing:
+        return
+
+    rule_results = (
+        session.execute(
+            select(RuleResult).where(
+                RuleResult.district_id == district.id,
+                RuleResult.status == "open",
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    for result in rule_results[:2]:
+        exception = ExceptionRecord(
+            district_id=district.id,
+            rule_result_id=result.id,
+            status=ExceptionStatusEnum.open,
+            rationale="Investigating data discrepancy",
+        )
+        session.add(exception)
+        session.flush()
+
+        packet = EvidencePacket(
+            district_id=district.id,
+            name=f"Evidence for {exception.id}",
+            description="Sample evidence packet",
+            zip_url=None,
+            sha256=None,
+        )
+        session.add(packet)
+        session.flush()
+
+        item = EvidenceItem(
+            district_id=district.id,
+            packet_id=packet.id,
+            exception_id=exception.id,
+            kind=EvidenceKindEnum.csv,
+            title="Exported student record",
+            uri="/samples/evidence/student.csv",
+        )
+        session.add(item)
+
+    session.commit()
+
+
+def bootstrap_readiness_scores(session: SessionLocal, district: District) -> None:
+    existing = session.execute(
+        select(ReadinessScore).where(ReadinessScore.district_id == district.id)
+    ).first()
+    if existing:
+        return
+
+    session.add_all(
+        [
+            ReadinessScore(district_id=district.id, school_id=None, category="District", score=72),
+        ]
+    )
+    session.commit()
 
 
 if __name__ == "__main__":
