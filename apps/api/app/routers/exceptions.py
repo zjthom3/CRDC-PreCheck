@@ -6,13 +6,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.api.app.dependencies import get_district
-from apps.api.app.dependencies.auth import get_current_user
+from apps.api.app.dependencies.auth import get_current_user, require_roles
 from apps.api.app.db.models import (
     ExceptionMemo,
     ExceptionRecord,
     ExceptionStatusEnum,
     RuleResult,
     UserAccount,
+    UserRoleEnum,
 )
 from apps.api.app.db.session import get_session
 from apps.api.app.schemas import (
@@ -22,12 +23,17 @@ from apps.api.app.schemas import (
     ExceptionRead,
     ExceptionUpdate,
 )
+from apps.api.app.services.audit import write_audit_log
 
 router = APIRouter(prefix="/exceptions", tags=["exceptions"])
 
 
 @router.get("", response_model=list[ExceptionRead])
-def list_exceptions(district=Depends(get_district), session: Session = Depends(get_session)) -> list[ExceptionRecord]:
+def list_exceptions(
+    district=Depends(get_district),
+    user: UserAccount | None = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> list[ExceptionRecord]:
     records = (
         session.execute(
             select(ExceptionRecord).where(ExceptionRecord.district_id == district.id).order_by(ExceptionRecord.created_at.desc())
@@ -35,6 +41,16 @@ def list_exceptions(district=Depends(get_district), session: Session = Depends(g
         .scalars()
         .all()
     )
+    if user:
+        write_audit_log(
+            session,
+            district_id=district.id,
+            user_id=user.id,
+            action="EXCEPTION_LIST",
+            entity_type="ExceptionRecord",
+            entity_id=None,
+            metadata={"count": len(records)},
+        )
     return records
 
 
@@ -42,7 +58,7 @@ def list_exceptions(district=Depends(get_district), session: Session = Depends(g
 def create_exception(
     payload: ExceptionCreate,
     district=Depends(get_district),
-    current_user: UserAccount | None = Depends(get_current_user),
+    current_user: UserAccount = Depends(require_roles(UserRoleEnum.admin, UserRoleEnum.data_engineer, UserRoleEnum.reviewer)),
     session: Session = Depends(get_session),
 ) -> ExceptionRecord:
     rule_result = session.execute(
@@ -68,6 +84,15 @@ def create_exception(
     session.add(exception)
     session.commit()
     session.refresh(exception)
+    write_audit_log(
+        session,
+        district_id=district.id,
+        user_id=current_user.id,
+        action="EXCEPTION_CREATE",
+        entity_type="ExceptionRecord",
+        entity_id=exception.id,
+        metadata={"rule_result_id": str(rule_result.id)},
+    )
     return exception
 
 
@@ -76,7 +101,7 @@ def update_exception(
     exception_id: UUID,
     payload: ExceptionUpdate,
     district=Depends(get_district),
-    current_user: UserAccount | None = Depends(get_current_user),
+    current_user: UserAccount = Depends(require_roles(UserRoleEnum.admin, UserRoleEnum.reviewer)),
     session: Session = Depends(get_session),
 ) -> ExceptionRecord:
     exception = session.execute(
@@ -110,6 +135,15 @@ def update_exception(
 
     session.commit()
     session.refresh(exception)
+    write_audit_log(
+        session,
+        district_id=district.id,
+        user_id=current_user.id,
+        action="EXCEPTION_UPDATE",
+        entity_type="ExceptionRecord",
+        entity_id=exception.id,
+        metadata=payload.model_dump(exclude_none=True),
+    )
     return exception
 
 
@@ -118,6 +152,7 @@ def create_exception_memo(
     exception_id: UUID,
     payload: ExceptionMemoCreate,
     district=Depends(get_district),
+    current_user: UserAccount = Depends(require_roles(UserRoleEnum.admin, UserRoleEnum.reviewer)),
     session: Session = Depends(get_session),
 ) -> ExceptionMemo:
     exception = session.execute(
@@ -136,6 +171,15 @@ def create_exception_memo(
     session.add(memo)
     session.commit()
     session.refresh(memo)
+    write_audit_log(
+        session,
+        district_id=district.id,
+        user_id=current_user.id,
+        action="EXCEPTION_MEMO_CREATE",
+        entity_type="ExceptionMemo",
+        entity_id=memo.id,
+        metadata={"exception_id": str(exception.id)},
+    )
     return memo
 
 

@@ -19,6 +19,7 @@ from .exceptions import (
 )
 from .evidence import EvidencePacketCreate, EvidencePacketRead
 from .readiness import ReadinessDetail, ReadinessResponse
+from .auth import SSOLoginRequest, UserRead, AuthResponse
 
 __all__ = [
     "DistrictCreate",
@@ -44,4 +45,7 @@ __all__ = [
     "EvidencePacketRead",
     "ReadinessDetail",
     "ReadinessResponse",
+    "SSOLoginRequest",
+    "UserRead",
+    "AuthResponse",
 ]

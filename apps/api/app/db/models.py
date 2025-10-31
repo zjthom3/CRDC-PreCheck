@@ -239,6 +239,7 @@ class UserAccount(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint("district_id", "email", name="uq_user_district_email"),
         UniqueConstraint("api_token", name="uq_user_api_token"),
+        UniqueConstraint("sso_provider", "sso_subject", name="uq_user_sso"),
     )
 
     id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4, nullable=False)
@@ -248,6 +249,9 @@ class UserAccount(Base, TimestampMixin):
     role: Mapped[UserRoleEnum] = mapped_column(UserRole, nullable=False, default=UserRoleEnum.admin)
     api_token: Mapped[str] = mapped_column(String(128), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    sso_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    sso_subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     district: Mapped["District"] = relationship()
 
@@ -423,3 +427,18 @@ class ReadinessScore(Base, TimestampMixin):
 
     district: Mapped["District"] = relationship()
     school: Mapped["School | None"] = relationship()
+
+
+class AuditLog(Base, TimestampMixin):
+    __tablename__ = "audit_log"
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4, nullable=False)
+    district_id: Mapped[UUID] = mapped_column(GUID(), ForeignKey("district.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[UUID | None] = mapped_column(GUID(), ForeignKey("user_account.id", ondelete="SET NULL"), nullable=True)
+    action: Mapped[str] = mapped_column(String(128), nullable=False)
+    entity_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    entity_id: Mapped[UUID | None] = mapped_column(GUID(), nullable=True)
+    metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+
+    district: Mapped["District"] = relationship()
+    user: Mapped["UserAccount | None"] = relationship()

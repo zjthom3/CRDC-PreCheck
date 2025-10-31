@@ -26,6 +26,14 @@ describe('HomePage', () => {
         return new Response(JSON.stringify([]), { status: 200 });
       }
 
+      if (url.includes('/readiness')) {
+        return new Response(JSON.stringify({ items: [] }), { status: 200 });
+      }
+
+      if (url.includes('/admin/health')) {
+        return new Response(JSON.stringify({ connectors: [], last_validation: null }), { status: 200 });
+      }
+
       throw new Error(`Unhandled fetch call: ${url}`);
     });
   });

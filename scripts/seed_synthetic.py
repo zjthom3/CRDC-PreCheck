@@ -1,6 +1,6 @@
 """Seed synthetic data for local development."""
 
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import func, select
 
@@ -193,9 +193,12 @@ def ensure_demo_user(session: SessionLocal, district: District) -> None:
                 role=UserRoleEnum.admin,
                 api_token=token,
                 is_active=True,
+                sso_provider="clever",
+                sso_subject="demo-admin",
+                last_login_at=datetime.utcnow(),
             )
         )
-        session.commit()
+    session.commit()
         print("Created demo admin user (token: demo-admin-token).")
 
 

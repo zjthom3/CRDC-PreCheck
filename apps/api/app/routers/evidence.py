@@ -10,10 +10,19 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.api.app.dependencies import get_district, get_current_user
-from apps.api.app.db.models import EvidenceItem, EvidencePacket, ExceptionRecord, EvidenceKindEnum, UserAccount
+from apps.api.app.dependencies import get_district
+from apps.api.app.dependencies.auth import require_roles
+from apps.api.app.db.models import (
+    EvidenceItem,
+    EvidencePacket,
+    ExceptionRecord,
+    EvidenceKindEnum,
+    UserAccount,
+    UserRoleEnum,
+)
 from apps.api.app.db.session import get_session
 from apps.api.app.schemas import EvidencePacketCreate, EvidencePacketRead
+from apps.api.app.services.audit import write_audit_log
 
 STORAGE_ROOT = Path(os.getenv("EVIDENCE_STORAGE", "storage/evidence"))
 
@@ -24,7 +33,7 @@ router = APIRouter(prefix="/evidence", tags=["evidence"])
 def create_packet(
     payload: EvidencePacketCreate,
     district=Depends(get_district),
-    user: UserAccount | None = Depends(get_current_user),
+    user: UserAccount = Depends(require_roles(UserRoleEnum.admin, UserRoleEnum.reviewer)),
     session: Session = Depends(get_session),
 ) -> EvidencePacket:
     exceptions = (
@@ -91,4 +100,14 @@ def create_packet(
 
     session.commit()
     session.refresh(packet)
+
+    write_audit_log(
+        session,
+        district_id=district.id,
+        user_id=user.id,
+        action="EVIDENCE_PACKET_CREATE",
+        entity_type="EvidencePacket",
+        entity_id=packet.id,
+        metadata={"exceptions": [str(exc.id) for exc in exceptions]},
+    )
     return packet

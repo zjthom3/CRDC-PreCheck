@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  downloadExceptionsCsv,
+  fetchAdminHealth,
   fetchDistricts,
   fetchReadiness,
   fetchRuleResults,
@@ -46,6 +48,12 @@ export default function HomePage() {
     enabled: Boolean(activeDistrict?.id),
   });
 
+  const { data: adminHealth } = useQuery({
+    queryKey: ['admin-health', activeDistrict?.id],
+    queryFn: () => fetchAdminHealth(activeDistrict!.id),
+    enabled: Boolean(activeDistrict?.id),
+  });
+
   const validateMutation = useMutation({
     mutationFn: () => triggerRuleRun(activeDistrict!.id),
     onSuccess: async () => {
@@ -63,6 +71,20 @@ export default function HomePage() {
   });
 
   const isLoading = districtsLoading || runsLoading || resultsLoading;
+
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const blob = await downloadExceptionsCsv(activeDistrict!.id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'exceptions.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    },
+  });
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
@@ -89,6 +111,10 @@ export default function HomePage() {
               <span aria-hidden="true">•</span>
               <Link href="/exceptions" className="underline decoration-dotted underline-offset-4">
                 View exceptions
+              </Link>
+              <span aria-hidden="true">•</span>
+              <Link href="/login" className="underline decoration-dotted underline-offset-4">
+                SSO login
               </Link>
             </div>
           </div>
@@ -151,6 +177,42 @@ export default function HomePage() {
                 </tbody>
               </table>
             </div>
+          )}
+        </section>
+
+        <section className="rounded-lg border border-slate-800 bg-slate-900/70 p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-medium text-white">Admin Health</h2>
+            <button
+              type="button"
+              disabled={!activeDistrict || exportMutation.isLoading}
+              onClick={() => exportMutation.mutate()}
+              className="rounded border border-indigo-500 px-3 py-1 text-xs font-semibold text-indigo-200"
+            >
+              {exportMutation.isLoading ? 'Exporting…' : 'Export Exceptions CSV'}
+            </button>
+          </div>
+          {adminHealth ? (
+            <div className="mt-4 space-y-3 text-sm text-slate-300">
+              <div>
+                <h3 className="font-semibold text-slate-200">Connectors</h3>
+                <ul className="mt-1 space-y-1">
+                  {adminHealth.connectors?.map((connector: any) => (
+                    <li key={connector.id}>
+                      <span className="font-mono text-xs text-slate-400">{connector.id}</span>{' '}
+                      <span className="uppercase text-indigo-300">{connector.status}</span>{' '}
+                      {connector.last_sync_at && <span className="text-slate-400">(last sync {connector.last_sync_at})</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-200">Last Validation</h3>
+                <p className="text-slate-400">{adminHealth.last_validation ?? 'Never'}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-4 text-slate-400">Authenticate to view connector health and validation history.</p>
           )}
         </section>
 

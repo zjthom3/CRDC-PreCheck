@@ -1,5 +1,13 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
-const API_TOKEN = process.env.NEXT_PUBLIC_API_TOKEN ?? '';
+const STATIC_TOKEN = process.env.NEXT_PUBLIC_API_TOKEN ?? '';
+let runtimeToken = STATIC_TOKEN;
+
+if (typeof window !== 'undefined') {
+  const stored = window.localStorage.getItem('crdc-precheck-token');
+  if (stored) {
+    runtimeToken = stored;
+  }
+}
 
 type District = {
   id: string;
@@ -68,12 +76,35 @@ export type ReadinessResponse = {
   items: ReadinessItem[];
 };
 
+export type AuthResponse = {
+  token: string;
+  user: {
+    id: string;
+    district_id: string;
+    email: string;
+    display_name: string;
+    role: string;
+  };
+};
+
+export function setAuthToken(token: string) {
+  runtimeToken = token;
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('crdc-precheck-token', token);
+  }
+}
+
+export function getAuthToken(): string {
+  return runtimeToken;
+}
+
 type RequestHeaders = HeadersInit | undefined;
 
 function buildHeaders(extra?: RequestHeaders): HeadersInit {
   const base: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (API_TOKEN) {
-    base.Authorization = `Bearer ${API_TOKEN}`;
+  const token = getAuthToken();
+  if (token) {
+    base.Authorization = `Bearer ${token}`;
   }
 
   if (!extra) {
@@ -153,8 +184,9 @@ export async function uploadStudentCsv(
   form.append('mapping', JSON.stringify(mapping));
 
   const headers: Record<string, string> = { 'X-District-ID': districtId };
-  if (API_TOKEN) {
-    headers.Authorization = `Bearer ${API_TOKEN}`;
+  const token = getAuthToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const response = await fetch(`${API_BASE}/import/students/csv`, {
@@ -204,4 +236,36 @@ export async function fetchReadiness(districtId: string): Promise<ReadinessRespo
   return request<ReadinessResponse>('/readiness', {
     headers: { 'X-District-ID': districtId },
   });
+}
+
+export async function loginSSO(
+  districtId: string,
+  payload: { provider: string; subject: string; email: string; display_name: string },
+): Promise<AuthResponse> {
+  const response = await request<AuthResponse>('/auth/sso', {
+    method: 'POST',
+    headers: { 'X-District-ID': districtId },
+    body: JSON.stringify(payload),
+  });
+  setAuthToken(response.token);
+  return response;
+}
+
+export async function fetchAdminHealth(districtId: string): Promise<any> {
+  return request('/admin/health', {
+    headers: { 'X-District-ID': districtId },
+  });
+}
+
+export async function downloadExceptionsCsv(districtId: string): Promise<Blob> {
+  const headers = buildHeaders({ 'X-District-ID': districtId });
+  const response = await fetch(`${API_BASE}/exports/exceptions.csv`, {
+    method: 'GET',
+    headers,
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || response.statusText);
+  }
+  return await response.blob();
 }

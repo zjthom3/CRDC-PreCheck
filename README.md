@@ -41,6 +41,7 @@ The demo admin token is `demo-admin-token`. Frontend requests rely on the `NEXT_
 - **VS Code**: tasks for dev, migrations, tests, and seeding (`.vscode/tasks.json`).
 - **Devcontainer**: containerized workspace aligned with the Compose stack.
 - **CI/CD**: GitHub Actions workflow runs linting and tests on push/PR.
+- **SSO**: use `POST /auth/sso` (demo provider `clever`, subject `demo-admin`) to obtain a bearer token. The web UI includes a `/login` helper page.
 
 ## Next Steps
 
