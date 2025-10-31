@@ -14,11 +14,12 @@ except ModuleNotFoundError:  # Fallback stub for test environments
         model_config = {"extra": "ignore"}
 
         def __init__(self, **data):
-            env_values = {}
-        for field in self.__class__.model_fields:
-                env_key = field.upper()
+            env_values: dict[str, str] = {}
+            model_fields = getattr(self.__class__, "model_fields", {})
+            for name in model_fields:
+                env_key = name.upper()
                 if env_key in os.environ:
-                    env_values[field] = os.environ[env_key]
+                    env_values[name] = os.environ[env_key]
             env_values.update(data)
             super().__init__(**env_values)
 
